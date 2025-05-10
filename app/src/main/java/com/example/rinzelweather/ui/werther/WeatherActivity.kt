@@ -1,15 +1,22 @@
 package com.example.rinzelweather.ui.werther
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.rinzelweather.R
 import com.example.rinzelweather.logic.model.Weather
 import com.example.rinzelweather.logic.model.getSky
@@ -21,6 +28,9 @@ class WeatherActivity: AppCompatActivity() {
 
     val viewModel by lazy { ViewModelProvider(this).get(WeatherViewModel::class.java) }
 
+    private lateinit var navBtn: ImageView
+    private lateinit var drawableLayout: DrawerLayout
+    private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var weatherLayout: ScrollView
     private lateinit var placeName: TextView
     private lateinit var currentTemp: TextView
@@ -35,12 +45,23 @@ class WeatherActivity: AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_weather)
-        
+
+        setupView()
+        observeData()
+        initListener()
+    }
+
+    private fun setupView() {
         // 设置初始可见性
         weatherLayout = findViewById(R.id.weather_layout)
         weatherLayout.visibility = View.VISIBLE // 临时设置为可见，测试布局是否正确显示
-        
+
+        swipeRefresh = findViewById(R.id.swipe_refresh)
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary)
+
         // 初始化控件
+        navBtn = findViewById(R.id.nav_button)
+        drawableLayout = findViewById(R.id.drawer_layout)
         placeName = findViewById(R.id.place_name)
         currentTemp = findViewById(R.id.current_temp)
         currentSky = findViewById(R.id.current_sky)
@@ -50,22 +71,16 @@ class WeatherActivity: AppCompatActivity() {
         dressingText = findViewById(R.id.dressing_text)
         ultravioletText = findViewById(R.id.ultraviolet_text)
         carWashingText = findViewById(R.id.card_washing_text)
-        
-        // 从Intent中获取数据
-        if (viewModel.currentLng.isEmpty()) {
-            viewModel.currentLng = intent.getStringExtra("location_lng") ?: ""
-            Log.d(TAG, "获取经度: ${viewModel.currentLng}")
-        }
-        if (viewModel.currentLat.isEmpty()) {
-            viewModel.currentLat = intent.getStringExtra("location_lat") ?: ""
-            Log.d(TAG, "获取纬度: ${viewModel.currentLat}")
-        }
-        if (viewModel.placeName.isEmpty()) {
-            viewModel.placeName = intent.getStringExtra("place_name") ?: ""
-        }
+    }
 
-        // 在WeatherActivity的onCreate方法中添加这行调试代码
-        Log.d(TAG, "Intent数据: lng=${intent.getStringExtra("location_lng")}, lat=${intent.getStringExtra("location_lat")}, name=${intent.getStringExtra("place_name")}")
+    private fun observeData() {
+        lifecycleScope.launch {
+            viewModel.savedPlaceFlow.collectLatest { place ->
+                if (place !== null) {
+                    placeName.text = place.name
+                }
+            }
+        }
 
         // 观察天气数据
         lifecycleScope.launch {
@@ -85,15 +100,35 @@ class WeatherActivity: AppCompatActivity() {
         // 观察加载状态
         lifecycleScope.launch {
             viewModel.loadingFlow.collectLatest { isLoading ->
-                // 可以在这里添加加载动画
+                swipeRefresh.isRefreshing = isLoading
             }
         }
+    }
 
-        // 在加载数据前添加日志
-        Log.d(TAG, "开始加载天气数据: lng=${viewModel.currentLng}, lat=${viewModel.currentLat}")
+    private fun initListener() {
+        swipeRefresh.setOnRefreshListener {
+            viewModel.reloadWeather()
+        }
 
-        // 加载天气数据
-        viewModel.refreshWeather(viewModel.currentLng, viewModel.currentLat)
+        navBtn.setOnClickListener {
+            drawableLayout.openDrawer(GravityCompat.START)
+        }
+
+        drawableLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
+            override fun onDrawerStateChanged(newState: Int) {
+            }
+
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+            }
+
+            override fun onDrawerClosed(drawerView: View) {
+                val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                manager.hideSoftInputFromWindow(drawerView.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+            }
+        })
     }
 
     private fun showWeatherInfo(weather: Weather) {

@@ -1,19 +1,21 @@
 package com.example.rinzelweather.ui.place
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.rinzelweather.logic.model.Place
 import com.example.rinzelweather.logic.repository.PlaceRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 
 class PlaceViewModel : ViewModel() {
+    private val TAG = "PlaceViewModel"
     // 搜索查询的状态流
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
@@ -33,7 +35,6 @@ class PlaceViewModel : ViewModel() {
     }
 
     // 根据搜索查询过滤区域
-    @OptIn(ExperimentalCoroutinesApi::class)
     val filterPlaces: StateFlow<List<Place>> = searchQuery
         .flatMapLatest { query ->
             placesFlow.combine(flow { emit(query) }) { places, searchText ->
@@ -56,4 +57,8 @@ class PlaceViewModel : ViewModel() {
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
+
+    fun savePlace(place: Place) = PlaceRepository.savePlace(place)
+
+    fun isPlaceSaved() = PlaceRepository.isPlaceSaved()
 }

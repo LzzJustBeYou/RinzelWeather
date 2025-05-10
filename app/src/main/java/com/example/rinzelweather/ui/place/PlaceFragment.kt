@@ -1,5 +1,6 @@
 package com.example.rinzelweather.ui.place
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -13,7 +14,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.rinzelweather.MainActivity
 import com.example.rinzelweather.R
+import com.example.rinzelweather.ui.werther.WeatherActivity
 import kotlinx.coroutines.launch
 
 class PlaceFragment: Fragment() {
@@ -21,7 +24,6 @@ class PlaceFragment: Fragment() {
     private lateinit var adapter: PlaceAdapter
     private lateinit var searchPlaceEdit: EditText
     private lateinit var bgImageView: ImageView
-    private lateinit var progressBar: ProgressBar
     private lateinit var recyclerView: androidx.recyclerview.widget.RecyclerView
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -44,13 +46,19 @@ class PlaceFragment: Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
+        if (activity is MainActivity && viewModel.isPlaceSaved()) {
+            val intent = Intent(context, WeatherActivity::class.java)
+            startActivity(intent)
+            activity?.finish()
+            return
+        }
+
         // 配置RecyclerView
         val layoutManager = LinearLayoutManager(activity)
         recyclerView.layoutManager = layoutManager
         adapter = PlaceAdapter(this, viewModel.filterPlaces.value)
         recyclerView.adapter = adapter
         
-        // 正确实现TextWatcher接口
         searchPlaceEdit.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             
