@@ -52,12 +52,11 @@ object CsvLoader {
         }
     }
 
-    private fun validateCoordinate(value: String, range: ClosedRange<Double>): Double {
-        val num = value.toDoubleOrNull()
-            ?: throw IllegalArgumentException("坐标格式错误")
-        if (num !in range) {
-            throw IllegalArgumentException("坐标超出有效范围")
+    private fun validateCoordinate(input: String, validRange: ClosedFloatingPointRange<Double>): Double {
+        val value = input.trim().toDouble()
+        if (value !in validRange) {
+            throw IllegalArgumentException("坐标值 $value 超出有效范围 $validRange")
         }
-        return num
+        return value
     }
 }
